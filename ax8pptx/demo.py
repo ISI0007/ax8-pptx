@@ -1,8 +1,8 @@
 """End-to-end smoke test: build a real deck and render it."""
 
 import os
-from skydeck.spec import Deck, Slide, ChartSpec, ChartSeries
-from skydeck.render import render
+from ax8pptx.spec import Deck, Slide, ChartSpec, ChartSeries
+from ax8pptx.render import render
 
 deck = Deck(
     title="Skydeck — Engine Test",
@@ -88,7 +88,7 @@ deck = Deck(
     ],
 )
 
-out = os.path.join("skydeck", "out", f"demo_{deck.theme}.pptx")
+out = os.path.join("out", f"demo_{deck.theme}.pptx")
 os.makedirs(os.path.dirname(out), exist_ok=True)
 render(deck, out)
 print("WROTE", os.path.abspath(out), os.path.getsize(out), "bytes")

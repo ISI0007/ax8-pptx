@@ -1,9 +1,9 @@
 """End-to-end: brief -> arc -> (canned model JSON) -> Deck -> pptx."""
 import json, os
-from skydeck.intake import Brief, Outline, OutlineItem, slide_arc, validate_brief
-from skydeck.pipeline import build_prompt, deck_from_json, check
-from skydeck.render import render
-from skydeck import fit
+from ax8pptx.intake import Brief, Outline, OutlineItem, slide_arc, validate_brief
+from ax8pptx.pipeline import build_prompt, deck_from_json, check
+from ax8pptx.render import render
+from ax8pptx import fit
 
 brief = Brief(topic="Why agentic PPT engines beat prompt-to-slide tools",
               audience="technical founders", goal="persuade",
@@ -64,8 +64,8 @@ errs = check(deck, brief)
 print("gate errors:", errs)
 assert not errs
 
-os.makedirs("skydeck/out", exist_ok=True)
-out = "skydeck/out/pipeline_deck.pptx"
+os.makedirs("ax8pptx/out", exist_ok=True)
+out = "ax8pptx/out/pipeline_deck.pptx"
 render(deck, out)
 print("WROTE", os.path.abspath(out), os.path.getsize(out), "bytes")
 

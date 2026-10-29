@@ -80,10 +80,17 @@ cover, section, bullets, two_col, kpi_row, chart, quote, table, closing.
 ## Verification
 
 ```bash
-python ax8pptx/verify.py ax8pptx/out/<file>.pptx     # OOXML integrity + shape graph
-python -m ax8pptx.test_pipeline                       # end-to-end pipeline test
+python ax8pptx/verify.py ax8pptx/out/<file>.pptx   # OOXML integrity + shape graph
+python -m ax8pptx.test_pipeline                     # end-to-end pipeline test
+python -m ax8pptx.test_llm_wire                     # LLM wire format against a local stub
+python ax8pptx/scan_secrets.py                      # pre-commit secret scan
 python -c "from ax8pptx.regress import compare; print(compare('path.pptx'))"
 ```
+
+`test_llm_wire` stands up a local HTTP server speaking the chat-completions
+wire format and drives the real `llm.complete()` code path through it, so the
+request shape, auth header, JSON extraction and gates are all exercised without
+an API key. It is not a substitute for a live call.
 
 ## Known limits
 

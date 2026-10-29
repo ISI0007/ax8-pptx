@@ -14,6 +14,38 @@ from .spec import Deck, Slide, ChartSpec, ChartSeries, validate_deck
 from .intake import Brief, Outline, OutlineItem, slide_arc, validate_brief, validate_outline
 
 
+def _first_object(txt: str) -> str:
+    """Return the first balanced top-level JSON object in txt.
+
+    Models wrap JSON in prose, fences, or key=value noise, so counting
+    braces is the only reliable boundary. String literals are skipped so
+    braces inside quoted text do not unbalance the scan.
+    """
+    start = txt.find("{")
+    if start == -1:
+        raise ValueError("no JSON object found in model output")
+    depth, in_str, esc = 0, False, False
+    for i in range(start, len(txt)):
+        c = txt[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif c == "\\":
+                esc = True
+            elif c == '"':
+                in_str = False
+            continue
+        if c == '"':
+            in_str = True
+        elif c == "{":
+            depth += 1
+        elif c == "}":
+            depth -= 1
+            if depth == 0:
+                return txt[start:i + 1]
+    raise ValueError("unbalanced JSON object in model output")
+
+
 SPEC_SCHEMA = """{
   "title": "deck title (<= 60 chars)",
   "subtitle": "one line (<= 110 chars)",
@@ -69,10 +101,7 @@ def deck_from_json(raw: str, brief: Brief) -> Deck:
         txt = txt.split("```")[1]
         if txt.lstrip().startswith("json"):
             txt = txt.lstrip()[4:]
-    start, end = txt.find("{"), txt.rfind("}")
-    if start == -1 or end == -1:
-        raise ValueError("no JSON object found in model output")
-    data = json.loads(txt[start:end + 1])
+    data = json.loads(_first_object(txt))
 
     slides: List[Slide] = []
     for s in data.get("slides", []):
