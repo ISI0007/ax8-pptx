@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+out/
+art/
+ax8pptx/art/
+regress_baseline/
+dist/
+build/
+scan_out.txt
