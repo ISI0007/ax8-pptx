@@ -46,9 +46,30 @@ def main(argv=None) -> int:
     ap.add_argument("--seeds", default="", help="comma-separated URLs for research")
     ap.add_argument("--no-art", action="store_true", help="skip generated cover art")
     ap.add_argument("--offline", action="store_true", help="use canned fixture (no LLM)")
+    ap.add_argument("--provider", default="", help="provider id (see --list-providers)")
+    ap.add_argument("--model", default="", help="override the provider's default model")
+    ap.add_argument("--list-providers", action="store_true",
+                    help="show every supported endpoint with tier and key status")
+    ap.add_argument("--probe", action="store_true", help="check provider reachability")
     ap.add_argument("--out", default="")
     ap.add_argument("--print-prompt", action="store_true")
     a = ap.parse_args(argv)
+
+    from .providers import describe_table, list_providers, resolve as resolve_provider
+
+    if a.list_providers:
+        print(describe_table())
+        return 0
+
+    if a.probe:
+        from .llm import probe
+        targets = [resolve_provider(a.provider)] if a.provider else list_providers()
+        targets = [t for t in targets if t]
+        for t in targets:
+            r = probe(t)
+            mark = "up  " if r["reachable"] else "down"
+            print(f"{mark} {t.id:<12}{t.tier:<10}{r['detail']}")
+        return 0
 
     brief = Brief(topic=a.topic, audience=a.audience, goal=a.goal,
                   slide_count=a.slides, theme=a.theme,
@@ -76,12 +97,24 @@ def main(argv=None) -> int:
         else:
             print("research: no seeds resolved (SERP blocked)", file=sys.stderr)
 
-    if a.print_prompt or (not a.offline and not os.environ.get("DEEPSEEK_API_KEY")):
+    provider = None
+    if not a.offline:
+        try:
+            provider = resolve_provider(a.provider or None)
+        except KeyError as e:
+            print(f"provider error: {e}", file=sys.stderr)
+            return 2
+
+    if a.print_prompt or (not a.offline and provider is None):
         print(prompt)
         if not a.offline:
-            print("\n[no DEEPSEEK_API_KEY - dry run]", file=sys.stderr)
+            print("\n[no provider configured - dry run. "
+                  "Run with --list-providers to see options.]", file=sys.stderr)
             return 2
         return 0
+    if not a.offline:
+        print(f"provider: {provider.id} ({provider.tier}) model: {a.model or provider.model}",
+              file=sys.stderr)
 
     # --- generate -------------------------------------------------------
     if a.offline:
@@ -94,7 +127,8 @@ def main(argv=None) -> int:
     else:
         from .llm import complete, LLMError
         try:
-            raw = complete(prompt, system="Return valid JSON only.")
+            raw = complete(prompt, system="Return valid JSON only.",
+                           provider=provider, model=a.model or None)
         except LLMError as e:
             print(f"LLM failed: {e}", file=sys.stderr)
             return 3
